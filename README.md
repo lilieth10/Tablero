@@ -129,6 +129,34 @@ kanban-board/
   cd BACKEND-KANBAN
   npm run test
   ```
+  ## 🚀 Mejoras Propuestas
+
+A continuación, se presentan algunas ideas para mejorar la aplicación y su funcionalidad:
+
+### **1. Pruebas Automatizadas**
+- Implementar pruebas unitarias y de integración más completas para el frontend y backend.
+- Utilizar herramientas como `Cypress` para pruebas end-to-end en el frontend.
+
+### **2. Optimización de Rendimiento**
+- Implementar técnicas de memoización en componentes React para evitar renders innecesarios.
+- Optimizar las consultas a la base de datos en el backend para mejorar la velocidad de respuesta.
+
+### **3. Gestión de Estado**
+- Integrar una librería de gestión de estado como `Redux` para manejar el estado global de la aplicación de manera más eficiente.
+
+### **4. Mejoras en la Interfaz de Usuario**
+- Agregar temas personalizables (modo claro/oscuro).
+
+### **5. Funcionalidades Adicionales**
+- **Etiquetas y Filtros**: Permitir a los usuarios agregar etiquetas a las tarjetas y filtrar por ellas.
+- **Notificaciones**: Agregar notificaciones en tiempo real para eventos importantes.
+
+### **6. Escalabilidad**
+- Implementar paginación o carga diferida para manejar grandes cantidades de datos.
+- Configurar un sistema de caché como `Redis` para mejorar el rendimiento del backend.
+
+### **7. Seguridad**
+- Implementar autenticación y autorización con `JWT` o `OAuth`.
 
 ### **Frontend**
 - Configurado con `@testing-library/react` para futuras pruebas de componentes.
