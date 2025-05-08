@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  font-family: "Roboto", sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+h1,
+h4 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+button {
+  margin: 10px;
+}
+
+.MuiPaper-root {
+  border-radius: 8px;
+}
+
+.MuiButton-containedPrimary {
+  background-color: #1976d2;
+  color: white;
+}
