@@ -58,32 +58,26 @@ El objetivo de este proyecto es proporcionar una solución completa para la gest
 ### **Pasos**
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/lilieth10/kanban-board.git
+   git clone https://github.com/lilieth10/TABLERO.git
    cd kanban-board
    ```
 
-2. Configura las variables de entorno:
-   - **Frontend** (`frontend-kanban/.env`):
-     ```env
-     PORT=3001
-     REACT_APP_API_URL=http://localhost:3000
-     ```
-   - **Backend** (`BACKEND-KANBAN/.env`):
-     ```env
-     MONGODB_URI=mongodb://localhost:27017/kanban
-     PORT=3000
-     ```
+2. Configura las variables de entorno de tu config para mongodb y api:
+   - **Frontend** (`Front/.env`):
+  
+   - **Backend** (`Back/.env`):
+  
 
 3. Instala las dependencias:
    - **Frontend**:
      ```bash
-     cd frontend-kanban
+     cd Front
      npm install
      npm start
      ```
    - **Backend**:
      ```bash
-     cd BACKEND-KANBAN
+     cd Back
      npm install
      npm run start:dev
      ```
@@ -137,8 +131,7 @@ kanban-board/
   ```
 
 ### **Frontend**
-- Configurado con `@testing-library/react` para pruebas de componentes.
-
+- Configurado con `@testing-library/react` para futuras pruebas de componentes.
 
 ---
 
