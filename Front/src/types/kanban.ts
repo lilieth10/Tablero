@@ -3,11 +3,24 @@ export interface Card {
   title: string;
   description: string;
   columnId: string;
-  position?: number;
+  position: number;
 }
 
 export interface Column {
   id: string;
   title: string;
-  position?: number;
+  position: number;
+}
+
+export interface DragResult {
+  draggableId: string;
+  type: string;
+  source: {
+    droppableId: string;
+    index: number;
+  };
+  destination: {
+    droppableId: string;
+    index: number;
+  } | null;
 }

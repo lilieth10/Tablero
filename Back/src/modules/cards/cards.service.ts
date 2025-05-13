@@ -3,10 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateCardDto } from './dto/create-card.dto';
 import { Card } from './shemas/card.shema';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class CardsService {
-  constructor(@InjectModel('Card') private cardModel: Model<Card>) {}
+  constructor(
+    @InjectModel('Card') private cardModel: Model<Card>,
+    private readonly realtimeGateway: RealtimeGateway,
+  ) {}
 
   async findAll(): Promise<Card[]> {
     return this.cardModel.find().exec();
@@ -25,7 +29,9 @@ export class CardsService {
       ...createCardDto,
       position,
     });
-    return createdCard.save();
+    const savedCard = await createdCard.save();
+    this.realtimeGateway.emitCardAdded(savedCard);
+    return savedCard;
   }
 
   async update(id: string, updateCardDto: Partial<Card>): Promise<Card | null> {
@@ -79,7 +85,19 @@ export class CardsService {
       const updatedCard = await existingCard.save({ session });
 
       await session.commitTransaction();
-      return updatedCard.toObject() as Card;
+      const result = updatedCard.toObject() as Card;
+      
+      if (updateCardDto.columnId && !existingCard.columnId.equals(updateCardDto.columnId)) {
+        this.realtimeGateway.emitCardMoved({
+          cardId: result.id,
+          newColumnId: result.columnId.toString(),
+          newPosition: result.position,
+        });
+      } else {
+        this.realtimeGateway.emitCardUpdated(result);
+      }
+      
+      return result;
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -111,6 +129,11 @@ export class CardsService {
         session,
       });
       await session.commitTransaction();
+      
+      if (deletedCard) {
+        this.realtimeGateway.emitCardDeleted(deletedCard.id);
+      }
+      
       return deletedCard;
     } catch (error) {
       await session.abortTransaction();

@@ -30,6 +30,7 @@ type Props = {
   setColumns: React.Dispatch<React.SetStateAction<ColumnType[]>>;
   deleteCard: (cardId: string) => Promise<void>;
   deleteColumn: (columnId: string) => void;
+  lastAction: React.MutableRefObject<null | 'move' | 'update' | 'add' | 'addColumn'>;
 };
 
 const Column = ({
@@ -39,6 +40,7 @@ const Column = ({
   setCards,
   deleteCard,
   deleteColumn,
+  lastAction,
 }: Props) => {
   const [isNewCardDialogOpen, setIsNewCardDialogOpen] = useState(false);
   const [newCard, setNewCard] = useState({
@@ -55,33 +57,31 @@ const Column = ({
     setNewCard({ title: "", description: "" });
   };
 
-  const addCard = async () => {
+  const handleAddCard = async () => {
     if (!newCard.title.trim()) {
       toast.warning("Por favor, ingresa un título para la tarjeta");
       return;
     }
-
-    const cardToCreate = {
-      title: newCard.title.trim(),
-      description: newCard.description.trim(),
-      columnId: column.id,
-      position: cards.filter((card) => card.columnId === column.id).length,
-    };
-
     try {
-      const response = await axios.post(`${API_URL}/cards`, cardToCreate);
-      setCards((prev) => [...prev, response.data]);
+      if (lastAction) lastAction.current = 'add';
+      const cardToAdd = {
+        title: newCard.title.trim(),
+        description: newCard.description.trim(),
+        columnId: column.id,
+        position: cards.filter((card) => card.columnId === column.id).length,
+      };
+      await axios.post(`${API_URL}/cards`, cardToAdd);
+      toast.success("Tarjeta agregada exitosamente");
       handleCloseNewCardDialog();
-      toast.success("Tarjeta creada exitosamente");
     } catch (error) {
       console.error("Error adding card:", error);
       if (axios.isAxiosError(error) && error.response) {
         toast.error(
-          `Error al crear la tarjeta: ${error.response.data.message || "Error del servidor"}`,
+          `Error al agregar la tarjeta: ${error.response.data.message || "Error del servidor"}`,
         );
       } else {
         toast.error(
-          "Error al crear la tarjeta. Por favor, intenta nuevamente.",
+          "Error al agregar la tarjeta. Por favor, intenta nuevamente.",
         );
       }
     }
@@ -89,18 +89,17 @@ const Column = ({
 
   const handleEditCard = async (updatedCard: Card) => {
     try {
+      if (lastAction) lastAction.current = 'update';
       const cardToUpdate = {
         title: updatedCard.title,
         description: updatedCard.description,
         columnId: updatedCard.columnId,
         position: updatedCard.position || 0,
       };
-
       const response = await axios.patch(
         `${API_URL}/cards/${updatedCard.id}`,
         cardToUpdate,
       );
-
       if (response.data) {
         const updatedCardWithDragProps = {
           ...response.data,
@@ -108,7 +107,6 @@ const Column = ({
           columnId: updatedCard.columnId,
           position: updatedCard.position,
         };
-
         setCards((prev) =>
           prev.map((card) =>
             card.id === updatedCard.id ? updatedCardWithDragProps : card,
@@ -369,7 +367,7 @@ const Column = ({
             Cancelar
           </Button>
           <Button
-            onClick={addCard}
+            onClick={handleAddCard}
             variant="contained"
             sx={{
               background: "#3182ce",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -25,6 +25,7 @@ const Board = () => {
   const [cards, setCards] = useState<Card[]>([]);
   const [isNewColumnDialogOpen, setIsNewColumnDialogOpen] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
+  const lastAction = useRef<null | 'move' | 'update' | 'add' | 'addColumn'>('add');
 
   useEffect(() => {
     fetchColumns();
@@ -33,54 +34,60 @@ const Board = () => {
     const socket = io(API_URL);
 
     socket.on("columnUpdated", (updatedColumn) => {
-      setColumns((prev) =>
-        prev.map((col) => (col.id === updatedColumn.id ? updatedColumn : col)),
-      );
+      handleColumnUpdate(updatedColumn);
       toast.info("Columna actualizada");
     });
 
     socket.on("cardUpdated", (updatedCard) => {
-      setCards((prev) =>
-        prev.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
-      );
-      toast.info("Tarjeta actualizada");
+      handleCardUpdate(updatedCard);
+      if (lastAction.current !== "move" && lastAction.current !== "update") {
+        toast.info("Tarjeta actualizada");
+      }
+      lastAction.current = null;
     });
 
     socket.on("cardMoved", (data) => {
-      setCards((prev) =>
-        prev.map((card) => {
-          if (card.id === data.cardId) {
-            return {
-              ...card,
-              columnId: data.newColumnId,
-              position: data.newPosition,
-            };
-          }
-          return card;
-        }),
-      );
-      toast.info("Tarjeta movida");
+      handleCardMove(data.movedCard);
+      if (lastAction.current !== "update") {
+        toast.info("Tarjeta movida");
+      }
+      lastAction.current = null;
     });
 
     socket.on("columnAdded", (newColumn) => {
-      setColumns((prev) => [...prev, newColumn]);
-      toast.success("Nueva columna agregada");
+      if (!columns.some((col) => col.id === newColumn.id)) {
+        handleColumnAdd(newColumn);
+        if (lastAction.current !== 'addColumn') {
+          toast.success("Nueva columna agregada");
+        }
+      }
+      lastAction.current = null;
     });
 
     socket.on("columnDeleted", (columnId) => {
-      setColumns((prev) => prev.filter((col) => col.id !== columnId));
-      setCards((prev) => prev.filter((card) => card.columnId !== columnId));
-      toast.info("Columna eliminada");
+      const columnToDelete = columns.find((col) => col.id === columnId);
+      if (columnToDelete) {
+        handleColumnDelete(columnToDelete);
+        toast.info("Columna eliminada");
+      }
     });
 
     socket.on("cardAdded", (newCard) => {
-      setCards((prev) => [...prev, newCard]);
-      toast.success("Nueva tarjeta agregada");
+      if (!cards.some((card) => card.id === newCard.id)) {
+        handleCardAdd(newCard);
+        if (lastAction.current !== 'add') {
+          toast.success("Nueva tarjeta agregada");
+        }
+      }
+      lastAction.current = null;
     });
 
     socket.on("cardDeleted", (cardId) => {
-      setCards((prev) => prev.filter((card) => card.id !== cardId));
-      toast.info("Tarjeta eliminada");
+      const cardToDelete = cards.find((card) => card.id === cardId);
+      if (cardToDelete) {
+        handleCardDelete(cardToDelete);
+        toast.info("Tarjeta eliminada");
+      }
     });
 
     return () => {
@@ -124,11 +131,11 @@ const Board = () => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/columns`, {
+      lastAction.current = 'addColumn';
+      await axios.post(`${API_URL}/columns`, {
         title: newColumnTitle.trim(),
         position: columns.length,
       });
-      setColumns((prev) => [...prev, response.data]);
       handleCloseNewColumnDialog();
       toast.success("Columna creada exitosamente");
     } catch (error) {
@@ -142,7 +149,6 @@ const Board = () => {
       await axios.delete(`${API_URL}/columns/${columnId}`);
       setColumns((prev) => prev.filter((col) => col.id !== columnId));
       setCards((prev) => prev.filter((card) => card.columnId !== columnId));
-      toast.success("Columna eliminada exitosamente");
     } catch (error) {
       console.error("Error deleting column:", error);
       toast.error("Error al eliminar la columna");
@@ -153,20 +159,64 @@ const Board = () => {
     try {
       await axios.delete(`${API_URL}/cards/${cardId}`);
       setCards((prev) => prev.filter((card) => card.id !== cardId));
-      toast.success("Tarjeta eliminada exitosamente");
     } catch (error) {
       console.error("Error deleting card:", error);
       toast.error("Error al eliminar la tarjeta");
     }
   };
 
+  const handleColumnUpdate = (updatedColumn: ColumnType) => {
+    setColumns((prev: ColumnType[]) =>
+      prev.map((col: ColumnType) =>
+        col.id === updatedColumn.id ? updatedColumn : col
+      )
+    );
+  };
+
+  const handleCardUpdate = (updatedCard: Card) => {
+    setCards((prev: Card[]) =>
+      prev.map((card: Card) =>
+        card.id === updatedCard.id ? updatedCard : card
+      )
+    );
+  };
+
+  const handleCardMove = (movedCard: Card) => {
+    setCards((prev: Card[]) =>
+      prev.map((card: Card) =>
+        card.id === movedCard.id ? movedCard : card
+      )
+    );
+  };
+
+  const handleColumnAdd = (newColumn: ColumnType) => {
+    setColumns((prev: ColumnType[]) => [...prev, newColumn]);
+  };
+
+  const handleColumnDelete = (deletedColumn: ColumnType) => {
+    setColumns((prev: ColumnType[]) =>
+      prev.filter((col: ColumnType) => col.id !== deletedColumn.id)
+    );
+    setCards((prev: Card[]) =>
+      prev.filter((card: Card) => card.columnId !== deletedColumn.id)
+    );
+  };
+
+  const handleCardAdd = (newCard: Card) => {
+    setCards((prev: Card[]) => [...prev, newCard]);
+  };
+
+  const handleCardDelete = (deletedCard: Card) => {
+    setCards((prev: Card[]) =>
+      prev.filter((card: Card) => card.id !== deletedCard.id)
+    );
+  };
+
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId, type } = result;
 
-   
     if (!destination) return;
 
-    
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -175,25 +225,21 @@ const Board = () => {
     }
 
     if (type === "card") {
-      // aca encuentramos las columnas de origen y destino
       const sourceColumn = columns.find((col) => col.id === source.droppableId);
       const destColumn = columns.find((col) => col.id === destination.droppableId);
 
       if (!sourceColumn || !destColumn) return;
 
-      
       const sourceCards = cards.filter(
         (card) => card.columnId === source.droppableId,
       );
       const [movedCard] = sourceCards.splice(source.index, 1);
 
-     
       const updatedSourceCards = sourceCards.map((card, index) => ({
         ...card,
         position: index,
       }));
 
-   
       const destCards = cards.filter(
         (card) => card.columnId === destination.droppableId,
       );
@@ -208,7 +254,6 @@ const Board = () => {
         position: index,
       }));
 
-     
       const updatedCards = cards
         .filter(
           (card) =>
@@ -217,11 +262,10 @@ const Board = () => {
         )
         .concat(updatedSourceCards, updatedDestCards);
 
-      // Actualiza el estado local
       setCards(updatedCards);
 
       try {
-        // Actualizamos el backend con la nueva posición de la tarjeta
+        lastAction.current = "move";
         await axios.patch(`${API_URL}/cards/${draggableId}`, {
           columnId: destination.droppableId,
           position: destination.index,
@@ -230,7 +274,7 @@ const Board = () => {
       } catch (error) {
         console.error("Error moving card:", error);
         toast.error("Error al mover la tarjeta");
-        setCards(cards); // Revertir al estado anterior en caso de error
+        setCards(cards);
       }
     }
   };
@@ -388,6 +432,7 @@ const Board = () => {
                     setColumns={setColumns}
                     deleteCard={deleteCard}
                     deleteColumn={deleteColumn}
+                    lastAction={lastAction}
                   />
                 )}
               </Droppable>
